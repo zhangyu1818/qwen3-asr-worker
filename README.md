@@ -1,226 +1,283 @@
-# Qwen3 ASR Service
+# Qwen3-ASR
 
-一个基于Cloudflare Workers的OpenAI兼容音频转录服务。
+OpenAI-compatible Speech-to-Text API powered by Alibaba Cloud's Qwen3-ASR model, deployed on Cloudflare Workers.
 
-## API 接口
+## 🌟 Features
 
-### POST `/v1/audio/transcriptions`
+- **OpenAI-compatible API**: Drop-in replacement for OpenAI's Whisper API (`/v1/audio/transcriptions`)
+- **18 Language Support**: Chinese (zh), Cantonese (yue), English (en), Japanese (ja), German (de), Korean (ko), Russian (ru), French (fr), Portuguese (pt), Arabic (ar), Italian (it), Spanish (es), Hindi (hi), Indonesian (id), Thai (th), Turkish (tr), Ukrainian (uk), Vietnamese (vi)
+- **Multiple Response Formats**: JSON, verbose JSON, plain text, and SRT subtitles
+- **Extensive Media Support**: Audio (AAC, AMR, FLAC, MP3, M4A, OGG, Opus, WAV, WebM, WMA) and Video (AVI, FLV, MKV, MOV, MP4, MPEG, WebM, WMV)
+- **Emotion Detection**: Automatically detects speaker emotion (surprised, neutral, happy, sad, disgusted, angry, fearful)
+- **Edge Deployment**: Fast, globally distributed via Cloudflare Workers
+- **Serverless Architecture**: Zero server management required
 
-OpenAI兼容的音频转录接口。
+## 🚀 Quick Start
 
-#### 请求格式
+### Prerequisites
 
-支持 `multipart/form-data` 格式：
+- [Cloudflare Account](https://dash.cloudflare.com/sign-up)
+- [Alibaba Cloud DashScope API Key](https://dashscope.console.aliyun.com/)
+- Node.js 18+ and pnpm (or npm)
 
-| 参数 | 类型 | 描述 |
-|------|------|------|
-| file | File | 音频文件 (必需) |
-| model | string | 模型名称 (可选) |
-| language | string | 语言代码 (可选，默认: en) |
-| response_format | string | 响应格式 (可选，支持: json, text, srt, verbose_json) |
-| temperature | string | 温度参数 (可选) |
+### Installation
 
-#### 响应格式
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/qwen3-asr.git
+   cd qwen3-asr
+   ```
 
-根据 `response_format` 参数返回不同格式：
+2. **Install dependencies**
+   ```bash
+   pnpm install
+   ```
 
-**JSON格式 (默认):**
+3. **Configure API credentials**
+   
+   Create a `.dev.vars` file for local development:
+   ```bash
+   DASHSCOPE_API_KEY=your_dashscope_api_key_here
+   ```
+
+4. **Set production secrets** (for deployment)
+   ```bash
+   wrangler secret put DASHSCOPE_API_KEY
+   ```
+
+### Local Development
+
+```bash
+pnpm dev
+```
+
+The API will be available at `http://localhost:8787`
+
+### Deployment
+
+```bash
+pnpm deploy
+```
+
+Your API will be deployed to Cloudflare Workers with a URL like:
+`https://qwen3-asr.your-subdomain.workers.dev`
+
+## 📖 API Usage
+
+### Basic Request
+
+```bash
+curl -X POST https://qwen3-asr.your-subdomain.workers.dev/v1/audio/transcriptions \
+  -F "file=@audio.mp3" \
+  -F "model=qwen3-asr-flash"
+```
+
+### With Language Specification
+
+```bash
+curl -X POST https://qwen3-asr.your-subdomain.workers.dev/v1/audio/transcriptions \
+  -F "file=@audio.mp3" \
+  -F "model=qwen3-asr-flash" \
+  -F "language=en"
+```
+
+### Response Formats
+
+#### Default JSON
+```bash
+curl -X POST https://qwen3-asr.your-subdomain.workers.dev/v1/audio/transcriptions \
+  -F "file=@audio.mp3" \
+  -F "model=qwen3-asr-flash" \
+  -F "response_format=json"
+```
+
+Response:
 ```json
 {
-  "text": "This is a mock transcription. The actual transcription logic will be implemented later.",
+  "text": "Hello, world!",
   "task": "transcribe",
   "language": "en",
-  "duration": 120.5,
-  "words": [
-    { "word": "This", "start": 0.0, "end": 0.5 },
-    { "word": "is", "start": 0.6, "end": 0.8 },
-    { "word": "a", "start": 0.9, "end": 1.0 },
-    { "word": "mock", "start": 1.1, "end": 1.5 },
-    { "word": "transcription", "start": 1.6, "end": 2.5 }
-  ]
+  "duration": 3.5,
+  "upload_info": {
+    "oss_url": "oss://...",
+    "expire_time": "2025-11-30T12:00:00.000Z",
+    "model_used": "qwen3-asr-flash"
+  },
+  "processing_time_ms": 1245
 }
 ```
 
-**Text格式:**
-```
-This is a mock transcription. The actual transcription logic will be implemented later.
-```
-
-**SRT格式:**
-```
-1
-00:00:00,000 --> 00:00:02,500
-This is a mock transcription. The actual transcription logic will be implemented later.
+#### Verbose JSON
+```bash
+curl -X POST https://qwen3-asr.your-subdomain.workers.dev/v1/audio/transcriptions \
+  -F "file=@audio.mp3" \
+  -F "model=qwen3-asr-flash" \
+  -F "response_format=verbose_json"
 ```
 
-**Verbose JSON格式:**
+Response includes additional metadata:
 ```json
 {
-  "text": "This is a mock transcription. The actual transcription logic will be implemented later.",
+  "text": "Hello, world!",
   "task": "transcribe",
   "language": "en",
-  "duration": 120.5,
-  "words": [...],
-  "request_id": "mock_1234567890",
-  "timestamp": "2025-11-28T00:00:00.000Z"
-}
-```
-
-## 配置
-
-### 环境变量
-
-在使用前，需要配置以下环境变量：
-
-1. **DASHSCOPE_API_KEY** (必需): DashScope API密钥
-   - 建议作为Secret设置：`wrangler secret put DASHSCOPE_API_KEY`
-   - 或在本地开发时创建 `.dev.vars` 文件
-
-2. **DEFAULT_MODEL_NAME** (可选): 默认模型名称
-   - 默认值: `qwen-vl-plus`
-   - 可在 `wrangler.jsonc` 中配置
-
-### 配置示例
-
-**wrangler.jsonc 配置:**
-```json
-{
-  "name": "qwen3-asr",
-  "vars": {
-    "DEFAULT_MODEL_NAME": "qwen-vl-plus"
+  "duration": 3.5,
+  "request_id": "...",
+  "timestamp": "2025-11-28T12:00:00.000Z",
+  "processing_time_ms": 1245,
+  "asr_metadata": {
+    "detected_language": "en",
+    "emotion": "neutral",
+    "finish_reason": "stop",
+    "usage": {
+      "input_tokens": 0,
+      "output_tokens": 25,
+      "audio_seconds": 3.5
+    }
   }
 }
 ```
 
-**本地开发 (.dev.vars):**
-```
-DASHSCOPE_API_KEY=your_api_key_here
-DEFAULT_MODEL_NAME=qwen-vl-plus
-```
-
-## 开发
-
-### 本地开发
+#### Plain Text
 ```bash
-npm run dev
+curl -X POST https://qwen3-asr.your-subdomain.workers.dev/v1/audio/transcriptions \
+  -F "file=@audio.mp3" \
+  -F "model=qwen3-asr-flash" \
+  -F "response_format=text"
 ```
 
-### 部署
+Response:
+```
+Hello, world!
+```
+
+#### SRT Subtitles
 ```bash
-npm run deploy
+curl -X POST https://qwen3-asr.your-subdomain.workers.dev/v1/audio/transcriptions \
+  -F "file=@audio.mp3" \
+  -F "model=qwen3-asr-flash" \
+  -F "response_format=srt"
 ```
 
-### 设置API密钥
+Response:
+```
+1
+00:00:00,000 --> 00:00:03,000
+Hello, world!
+```
+
+## 🛠️ Configuration
+
+### Environment Variables
+
+Configure via `wrangler.jsonc` and Cloudflare secrets:
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `DASHSCOPE_API_KEY` | Alibaba Cloud DashScope API Key | - | ✅ |
+| `DEFAULT_MODEL_NAME` | Default ASR model to use | `qwen3-asr-flash` | ❌ |
+
+### Supported Languages
+
+| Code | Language | Code | Language |
+|------|----------|------|----------|
+| `zh` | Chinese | `ar` | Arabic |
+| `yue` | Cantonese | `it` | Italian |
+| `en` | English | `es` | Spanish |
+| `ja` | Japanese | `hi` | Hindi |
+| `de` | German | `id` | Indonesian |
+| `ko` | Korean | `th` | Thai |
+| `ru` | Russian | `tr` | Turkish |
+| `fr` | French | `uk` | Ukrainian |
+| `pt` | Portuguese | `vi` | Vietnamese |
+
+### Supported File Formats
+
+**Audio**: AAC, AMR, FLAC, MP3, M4A, OGG, Opus, WAV, WebM, WMA
+
+**Video**: AVI, FLV, MKV, MOV, MP4, MPEG, WebM, WMV
+
+**Maximum File Size**: 100MB
+
+## 🏗️ Architecture
+
+```
+┌─────────────┐
+│   Client    │
+└──────┬──────┘
+       │ POST /v1/audio/transcriptions
+       ▼
+┌─────────────────────────────┐
+│   Cloudflare Workers        │
+│   (Hono Framework)          │
+├─────────────────────────────┤
+│ 1. Validate file            │
+│ 2. Upload to OSS            │
+│ 3. Call Qwen3-ASR API       │
+│ 4. Convert to OpenAI format │
+└──────┬──────────────────────┘
+       │
+       ▼
+┌─────────────────────────────┐
+│ Alibaba Cloud DashScope     │
+│ (Qwen3-ASR Model)           │
+└─────────────────────────────┘
+```
+
+## 📁 Project Structure
+
+```
+qwen3-asr/
+├── src/
+│   ├── index.ts              # Main application entry point
+│   ├── types.ts              # TypeScript type definitions
+│   └── services/
+│       ├── asrService.ts     # Qwen3-ASR API integration
+│       └── uploadService.ts  # File upload to OSS
+├── wrangler.jsonc            # Cloudflare Workers configuration
+├── tsconfig.json             # TypeScript configuration
+└── package.json              # Dependencies and scripts
+```
+
+## 🔧 Development
+
+### Scripts
+
 ```bash
-# 设置为Secret（推荐用于生产环境）
-wrangler secret put DASHSCOPE_API_KEY
+# Start local development server
+pnpm dev
 
-# 或者设置为普通变量（仅限测试环境）
-wrangler secret put DASHSCOPE_API_KEY
+# Deploy to Cloudflare Workers
+pnpm deploy
+
+# Generate TypeScript types
+pnpm cf-typegen
 ```
 
-### 类型生成
-```bash
-npm run cf-typegen
-```
+### Tech Stack
 
-## 依赖
+- **Framework**: [Hono](https://hono.dev/) - Ultrafast web framework for edge
+- **Runtime**: [Cloudflare Workers](https://workers.cloudflare.com/) - Serverless edge computing
+- **ASR Model**: [Qwen3-ASR](https://help.aliyun.com/zh/model-studio/developer-reference/qwen3-asr-api/) - Alibaba Cloud's speech recognition model
+- **Language**: TypeScript
 
-- **Hono**: 轻量级Web框架
-- **Cloudflare Workers**: 无服务器计算平台
+## 📄 License
 
-## 功能特性
+MIT
 
-- ✅ **OpenAI兼容接口**: 完全兼容OpenAI转录API规范
-- ✅ **文件上传**: 自动上传音频文件到阿里云OSS临时存储
-- ✅ **多种响应格式**: 支持JSON、Text、SRT、Verbose JSON格式
-- ✅ **错误处理**: 完善的错误处理和日志记录
-- ✅ **文件验证**: 支持文件类型和大小验证
-- ✅ **性能监控**: 记录处理时间和上传信息
+## 🤝 Contributing
 
-## 使用示例
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-### cURL 请求示例
+## 📮 Support
 
-```bash
-# 基本转录请求
-curl -X POST "https://your-worker.your-subdomain.workers.dev/v1/audio/transcriptions" \
-  -H "Authorization: Bearer your-api-key" \
-  -F "file=@/path/to/your/audio.mp3" \
-  -F "model=qwen-vl-plus" \
-  -F "language=zh" \
-  -F "response_format=json"
+For issues and questions:
+- Create an issue in this repository
+- Refer to [Alibaba Cloud DashScope Documentation](https://help.aliyun.com/zh/model-studio/)
+- Check [Cloudflare Workers Documentation](https://developers.cloudflare.com/workers/)
 
-# 获取详细响应
-curl -X POST "https://your-worker.your-subdomain.workers.dev/v1/audio/transcriptions" \
-  -H "Authorization: Bearer your-api-key" \
-  -F "file=@/path/to/your/audio.mp3" \
-  -F "model=qwen-vl-plus" \
-  -F "response_format=verbose_json"
-```
+## 🙏 Acknowledgments
 
-### Python 请求示例
-
-```python
-import requests
-
-url = "https://your-worker.your-subdomain.workers.dev/v1/audio/transcriptions"
-headers = {"Authorization": "Bearer your-api-key"}
-
-with open("audio.mp3", "rb") as f:
-    files = {"file": f}
-    data = {
-        "model": "qwen-vl-plus",
-        "language": "zh",
-        "response_format": "json"
-    }
-
-    response = requests.post(url, headers=headers, files=files, data=data)
-    result = response.json()
-
-    print(f"转录结果: {result['text']}")
-    print(f"检测到的语言: {result['language']}")
-    if 'upload_info' in result:
-        print(f"上传的OSS URL: {result['upload_info']['oss_url']}")
-```
-
-## ASR服务说明
-
-本服务使用通义千问3-ASR-Flash模型进行语音识别：
-
-### 支持的语言
-
-- **zh**: 中文（普通话、四川话、闽南语、吴语）
-- **yue**: 粤语
-- **en**: 英文
-- **ja**: 日语
-- **de**: 德语
-- **ko**: 韩语
-- **ru**: 俄语
-- **fr**: 法语
-- **pt**: 葡萄牙语
-- **ar**: 阿拉伯语
-- **it**: 意大利语
-- **es**: 西班牙语
-- **hi**: 印地语
-- **id**: 印尼语
-- **th**: 泰语
-- **tr**: 土耳其语
-- **uk**: 乌克兰语
-- **vi**: 越南语
-
-### 功能特性
-
-- **ITN功能**: 默认启用逆文本标准化，提高识别结果的可读性
-- **情感识别**: 自动检测音频中的情感（平静、愉快、悲伤等）
-- **音频时长计算**: 自动计算并返回音频时长
-- **上下文增强**: 支持提供背景文本提高识别准确率（预留接口）
-
-## 注意事项
-
-- **文件上传有效期**: 上传的音频文件有效期48小时
-- **文件大小限制**: 最大100MB
-- **支持文件类型**: 音频和视频格式
-- **上传凭证限流**: 上传凭证接口限流100 QPS，生产环境建议使用阿里云OSS
-- **ASR服务区域**: 固定使用中国区域DashScope服务
-- **API密钥**: 需要有效的DashScope API密钥
+- [Alibaba Cloud](https://www.alibabacloud.com/) for Qwen3-ASR model
+- [Cloudflare](https://www.cloudflare.com/) for Workers platform
+- [Hono](https://hono.dev/) for the excellent web framework

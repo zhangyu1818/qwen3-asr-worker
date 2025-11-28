@@ -1,0 +1,19 @@
+{
+  "name": "qwen3-asr",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+    "hono": "^4.6.20"
+  },
+  "devDependencies": {
+    "@types/node": "22.13.0",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.51.0"
+  }
+}

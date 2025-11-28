@@ -1,7 +1,18 @@
 import type { Env } from '../types';
 
-// ASR服务API端点（语音转录接口）
-const ASR_ENDPOINT = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation';
+// ASR服务API端点配置
+const ASR_ENDPOINTS = {
+  China: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation',
+  International: 'https://dashscope-intl.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation'
+};
+
+/**
+ * 根据区域获取ASR服务端点
+ */
+function getASREndpoint(region?: string): string {
+  const normalizedRegion = region === 'International' ? 'International' : 'China';
+  return ASR_ENDPOINTS[normalizedRegion];
+}
 
 // 支持的语言列表
 const SUPPORTED_LANGUAGES = [
@@ -147,8 +158,11 @@ export async function callASRService(
     }
   };
 
+  const asrEndpoint = getASREndpoint(env.API_REGION);
+
   console.log('ASR request:', {
-    endpoint: ASR_ENDPOINT,
+    endpoint: asrEndpoint,
+    region: env.API_REGION || 'China (default)',
     audioUrl,
     language,
     enableITN,
@@ -156,7 +170,7 @@ export async function callASRService(
   });
 
   try {
-    const response = await fetch(ASR_ENDPOINT, {
+    const response = await fetch(asrEndpoint, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,

@@ -26,7 +26,8 @@
 	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
 	 */
 	"vars": {
-		"DEFAULT_MODEL_NAME": "qwen3-asr-flash"
+		"DEFAULT_MODEL_NAME": "qwen3-asr-flash",
+		"API_REGION": "China"
 	}
 	/**
 	 * Note: Use secrets to store sensitive data.

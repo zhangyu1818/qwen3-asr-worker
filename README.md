@@ -176,6 +176,23 @@ Configure via `wrangler.jsonc` and Cloudflare secrets:
 |----------|-------------|---------|----------|
 | `DASHSCOPE_API_KEY` | Alibaba Cloud DashScope API Key | - | ✅ |
 | `DEFAULT_MODEL_NAME` | Default ASR model to use | `qwen3-asr-flash` | ❌ |
+| `API_REGION` | API region: `China` or `International` | `China` | ❌ |
+
+### API Regions
+
+The service supports two regional endpoints:
+
+- **China** (default): `https://dashscope.aliyuncs.com` - For users in mainland China
+- **International**: `https://dashscope-intl.aliyuncs.com` - For users outside mainland China
+
+To configure the region in `wrangler.jsonc`:
+
+```jsonc
+"vars": {
+  "DEFAULT_MODEL_NAME": "qwen3-asr-flash",
+  "API_REGION": "International"  // Change to "China" or "International"
+}
+```
 
 ### Supported Languages
 

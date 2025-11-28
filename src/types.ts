@@ -27,4 +27,6 @@ export interface Env {
   DASHSCOPE_API_KEY: string;
   // 默认模型名称
   DEFAULT_MODEL_NAME?: string;
+  // API区域: "China" 或 "International"
+  API_REGION?: string;
 }

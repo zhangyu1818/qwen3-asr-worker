@@ -1,5 +1,8 @@
 # Qwen3-ASR
 
+> [!IMPORTANT]
+> **Known Deployment Issue**: Everything works fine when running locally, but when deployed to Cloudflare Workers, the API times out. Qwen's API appears to require region-specific endpoints, but switching to the International API endpoint makes the temporary OSS upload (only available in mainland China) inaccessible. This appears to be a fundamental compatibility issue with Workers deployment.
+
 OpenAI-compatible Speech-to-Text API powered by Alibaba Cloud's Qwen3-ASR model, deployed on Cloudflare Workers.
 
 ## 🌟 Features

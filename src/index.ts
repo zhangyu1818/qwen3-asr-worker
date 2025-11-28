@@ -4,7 +4,8 @@ import {
   callASRService,
   createVerboseResponse,
   convertToOpenAIFormat,
-  isValidLanguage
+  isValidLanguage,
+  type SupportedLanguage
 } from "./services/asrService";
 import type { Env } from "./types";
 
@@ -14,16 +15,30 @@ const app = new Hono<{ Bindings: Env }>();
 // Configuration constants
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 const ALLOWED_TYPES = [
-  "audio/mpeg",
-  "audio/mp3",
-  "audio/wav",
-  "audio/wave",
-  "audio/x-wav",
-  "audio/mp4",
-  "audio/x-m4a",
-  "video/mp4",
-  "video/mpeg",
-  "video/quicktime"
+  // Audio formats
+  "audio/aac",              // aac
+  "audio/amr",              // amr
+  "audio/flac",             // flac
+  "audio/mp3",              // mp3
+  "audio/mpeg",             // mp3
+  "audio/mp4",              // m4a, mp4
+  "audio/x-m4a",            // m4a
+  "audio/ogg",              // ogg
+  "audio/opus",             // opus
+  "audio/wav",              // wav
+  "audio/wave",             // wav
+  "audio/x-wav",            // wav
+  "audio/webm",             // webm
+  "audio/x-ms-wma",         // wma
+  // Video formats
+  "video/x-msvideo",        // avi
+  "video/x-flv",            // flv
+  "video/x-matroska",       // mkv
+  "video/quicktime",        // mov
+  "video/mp4",              // mp4
+  "video/mpeg",             // mpeg
+  "video/webm",             // webm
+  "video/x-ms-wmv"          // wmv
 ];
 
 /**
@@ -76,7 +91,7 @@ app.post("/v1/audio/transcriptions", async (c) => {
     }
 
     // Validate language parameter if provided
-    let validatedLanguage: string | undefined;
+    let validatedLanguage: SupportedLanguage | undefined;
     if (language && language !== '') {
       if (!isValidLanguage(language)) {
         return c.json(
@@ -105,7 +120,7 @@ app.post("/v1/audio/transcriptions", async (c) => {
     });
 
     // Upload file and get URL
-    const modelName = model || c.env.DEFAULT_MODEL_NAME || "qwen-vl-plus";
+    const modelName = model || c.env.DEFAULT_MODEL_NAME || "qwen3-asr-flash";
     const uploadResult = await uploadFileAndGetUrl(
       c.env.DASHSCOPE_API_KEY,
       modelName,
@@ -120,8 +135,9 @@ app.post("/v1/audio/transcriptions", async (c) => {
     // Call ASR service
     const asrResponse = await callASRService(c.env, {
       audioUrl: uploadResult.ossUrl,
-      language: validatedLanguage as any,
-      enableITN: true // Enable ITN by default for better results
+      language: validatedLanguage,
+      enableITN: true, // Enable ITN by default for better results
+      model: modelName
     });
 
     // Convert ASR response to OpenAI format

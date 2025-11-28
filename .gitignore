@@ -161,7 +161,11 @@ dist
 # wrangler project
 
 .dev.vars*
+# 保护本地开发环境变量文件
+.dev.vars*
+.env*
 !.dev.vars.example
+!.env.example
 .env*
 !.env.example
 .wrangler/

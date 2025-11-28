@@ -1,6 +1,6 @@
 import type { Env } from '../types';
 
-// ASR服务API端点 (固定使用中国区域)
+// ASR服务API端点（语音转录接口）
 const ASR_ENDPOINT = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation';
 
 // 支持的语言列表
@@ -9,7 +9,7 @@ const SUPPORTED_LANGUAGES = [
   'it', 'es', 'hi', 'id', 'th', 'tr', 'uk', 'vi'
 ] as const;
 
-type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
+export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
 
 // 支持的情感类型
 type EmotionType = 'surprised' | 'neutral' | 'happy' | 'sad' | 'disgusted' | 'angry' | 'fearful';
@@ -19,6 +19,7 @@ type EmotionType = 'surprised' | 'neutral' | 'happy' | 'sad' | 'disgusted' | 'an
  */
 interface ASRRequestParams {
   audioUrl: string;
+  model: string;
   language?: SupportedLanguage;
   enableITN?: boolean;
   context?: string;
@@ -104,6 +105,7 @@ export async function callASRService(
 ): Promise<ASRResponse> {
   const {
     audioUrl,
+    model,
     language,
     enableITN = false,
     context = ''
@@ -116,7 +118,7 @@ export async function callASRService(
 
   // 构建请求体
   const requestBody = {
-    model: 'qwen3-asr-flash',
+    model,
     input: {
       messages: [
         {
@@ -158,7 +160,8 @@ export async function callASRService(
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-DashScope-OssResourceResolve': 'enable' // 必需：支持临时oss://URL解析
       },
       body: JSON.stringify(requestBody)
     });
